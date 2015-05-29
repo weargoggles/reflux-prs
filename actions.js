@@ -10,10 +10,15 @@ xr.configure({
     }
 });
 
-function xrp (x) {
+function xrp (x, ) {
     return new Promise(function (resolve, reject) {
         x.then(function (res) {
-            resolve(Immutable.fromJS(res.data));
+            if (res.getResponseHeader('link')) {
+
+            }
+            else {
+                resolve(Immutable.fromJS(res.data));
+            }
         }).catch(function (res) {
             reject(res.status);
         });
@@ -27,6 +32,7 @@ var actions = Reflux.createActions({
     "updateAllPRLists": { asyncResult: true },
     "updatePRList": { asyncResult: true },
     "updatePRStatus": { asyncResult: true },
+    "filterByOwner": {},
 });
 
 actions.init.listen(actions.updateRepoList);

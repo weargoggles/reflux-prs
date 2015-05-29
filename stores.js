@@ -11,6 +11,22 @@ var RepoStore = Reflux.createStore({
     }
 });
 
+var OwnerStore = Reflux.createStore({
+    init: function () {
+        this.listenTo(RepoStore, 'populate');
+        this.owners = Immutable.List();
+    },
+    populate: function (repos) {
+        this.owners = repos.map(function (repo) {
+            return repo.get('owner').get('login');
+        });
+        this.trigger(this.owners);
+    },
+    getInitialState: function () {
+        return this.owners;
+    }
+});
+
 var PRStore = Reflux.createStore({
     listenables: actions,
     init: function () {
@@ -22,17 +38,30 @@ var PRStore = Reflux.createStore({
             return updated.find(function (id) { return pr.get('id') === id; });
         }).merge(data);
         this.trigger(this._prs);
-    },
-    getInitialData: function () {
-        return this._prs;
     }
 });
 
 var RepoDisplayStore = Reflux.createStore({
+    listenables: actions,
     init: function () {
         this.listenTo(RepoStore, 'updateRepos');
         this.listenTo(PRStore, 'updatePRCounts');
         this._repos = Immutable.List();
+        this.filter = function () { return true; };
+    },
+    output: function () {
+        this.trigger(this._repos.filter(this.filter));
+    },
+    onFilterByOwner: function (owner) {
+        if (typeof owner !== 'undefined') {
+            this.filter = function (repo) {
+                return repo.get('owner') === owner;
+            };
+        }
+        else {
+            this.filter = function () { return true; };
+        }
+        this.output();
     },
     updateRepos: function (repos) {
         this._repos = repos.map(function (repo) {
@@ -42,7 +71,7 @@ var RepoDisplayStore = Reflux.createStore({
                 name: repo.get('name'),
             });
         });
-        this.trigger(this._repos);
+        this.output();
     },
     updatePRCounts: function (prs) {
         this._repos = this._repos.map(function (repo) {
@@ -50,7 +79,7 @@ var RepoDisplayStore = Reflux.createStore({
                 return pr.get('head').get('repo').get('id') === repo.get('id');
             }).size);
         });
-        this.trigger(this._repos);
+        this.output();
     },
 });
 
