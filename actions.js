@@ -5,6 +5,7 @@ var Immutable = require('immutable');
 
 xr.configure({
     headers: {
+        'accept': 'application/vnd.github.moondragon+json',
         'authorization': 'Token GITHUB_TOKEN'
     }
 });
@@ -31,12 +32,7 @@ var actions = Reflux.createActions({
 actions.init.listen(actions.updateRepoList);
 
 actions.updateRepoList.listenAndPromise(function () {
-    return xrp(xr.get('https://api.github.com/user/repos', {}, {
-        headers: {
-            'accept': 'application/vnd.github.moondragon+json',
-            'authorization': 'Token 0aa7fe3ce4eb3a81f37a16bfc190cfebd3af8968'
-        }
-    }));
+    return xrp(xr.get('https://api.github.com/user/repos'));
 });
 
 actions.updateRepoList.completed.listen(actions.updateAllPRLists);
@@ -52,11 +48,7 @@ actions.updateAllPRLists.completed.listen(function () {
 });
 
 actions.updatePRList.listenAndPromise(function (owner, repo) {
-    return xrp(xr.get('https://api.github.com/repos/' + owner + '/' + repo + '/pulls', {}, {
-        headers: {
-            'authorization': 'Token 0aa7fe3ce4eb3a81f37a16bfc190cfebd3af8968'
-        }
-    }));
+    return xrp(xr.get('https://api.github.com/repos/' + owner + '/' + repo + '/pulls'));
 });
 
 module.exports = actions;
