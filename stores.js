@@ -6,57 +6,57 @@ var actions = require('./actions');
 var RepoStore = Reflux.createStore({
     listenables: actions,
     updateRepoListCompleted: function (data) {
-        this.repos = data;
-        this.trigger(this.repos);
+        this.state = data;
+        this.trigger(this.state);
     }
 });
 
 var OwnerStore = Reflux.createStore({
     init: function () {
         this.listenTo(RepoStore, 'populate');
-        this.owners = Immutable.Set();
+        this.state = Immutable.Set();
     },
     populate: function (repos) {
-        this.owners = repos.map(function (repo) {
+        this.state = repos.map(function (repo) {
             return repo.get('owner').get('login');
         }).toSet();
-        this.trigger(this.owners);
+        this.trigger(this.state);
     },
     getInitialState: function () {
-        return this.owners;
+        return this.state;
     }
 });
 
 var SelectedOwnerStore = Reflux.createStore({
     listenables: actions,
     init: function () {
-        this._selected = "";
+        this.state = "";
     },
     onSelectOwner: function (owner) {
         if (owner) {
-            this._selected = owner;
+            this.state = owner;
         }
         else {
-            this._selected = "";
+            this.state = "";
         }
-        this.trigger(this._selected);
+        this.trigger(this.state);
     },
     getInitialState: function () {
-        return this._selected;
+        return this.state;
     }
 });
 
 var PRStore = Reflux.createStore({
     listenables: actions,
     init: function () {
-        this._prs = Immutable.List([]);
+        this.state = Immutable.List([]);
     },
     updatePRListCompleted: function (data) {
-        var updated = data.map(function (pr) { return pr.get('id') });
-        this._prs = this._prs.filterNot(function (pr) {
+        var updated = data.map(function (pr) { return pr.get('id'); });
+        this.state = this.state.filterNot(function (pr) {
             return updated.find(function (id) { return pr.get('id') === id; });
         }).merge(data);
-        this.trigger(this._prs);
+        this.trigger(this.state);
     }
 });
 
@@ -65,11 +65,11 @@ var RepoDisplayStore = Reflux.createStore({
     init: function () {
         this.listenTo(RepoStore, 'updateRepos');
         this.listenTo(PRStore, 'updatePRCounts');
-        this._repos = Immutable.List([]);
+        this.state = Immutable.List([]);
         this.filter = function () { return true; };
     },
     output: function () {
-        this.trigger(this._repos.filter(this.filter).sortBy(function (repo) { return repo.get('count'); }).reverse());
+        this.trigger(this.state.filter(this.filter).sortBy(function (repo) { return repo.get('count'); }).reverse());
     },
     onFilterByOwner: function (owner) {
         if (owner) {
@@ -83,7 +83,7 @@ var RepoDisplayStore = Reflux.createStore({
         this.output();
     },
     updateRepos: function (repos) {
-        this._repos = repos.map(function (repo) {
+        this.state = repos.map(function (repo) {
             return Immutable.Map({
                 id: repo.get('id'),
                 owner: repo.get('owner').get('login'),
@@ -94,7 +94,7 @@ var RepoDisplayStore = Reflux.createStore({
         this.output();
     },
     updatePRCounts: function (prs) {
-        this._repos = this._repos.map(function (repo) {
+        this.state = this.state.map(function (repo) {
             var pr_count = prs.filter(function (pr) {
                 return pr.get('head').get('repo').get('id') === repo.get('id');
             }).size;
@@ -108,8 +108,8 @@ var RepoDisplayStore = Reflux.createStore({
         this.output();
     },
     getInitialState: function () {
-        console.log('repostore initial state call', this._repos);
-        return this._repos;
+        console.log('repostore initial state call', this.state);
+        return this.state;
     }
 });
 
