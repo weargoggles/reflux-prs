@@ -10,14 +10,20 @@ xr.configure({
     }
 });
 
-function xrp (x, ) {
+function xrp (x, accumulator) {
     return new Promise(function (resolve, reject) {
         x.then(function (res) {
-            if (res.getResponseHeader('link')) {
-
+            var link_header = res.xhr.getResponseHeader('link'),
+                link_match = link_header && link_header.match(/<([^>]+)>; rel="next"/),
+                data = Immutable.fromJS(res.data);
+            if (accumulator) {
+                data = accumulator.concat(data);
+            }
+            if (link_match) {
+                resolve(xrp(xr.get(link_match[1]), data));
             }
             else {
-                resolve(Immutable.fromJS(res.data));
+                resolve(data);
             }
         }).catch(function (res) {
             reject(res.status);
@@ -33,6 +39,7 @@ var actions = Reflux.createActions({
     "updatePRList": { asyncResult: true },
     "updatePRStatus": { asyncResult: true },
     "filterByOwner": {},
+    "selectOwner": {},
 });
 
 actions.init.listen(actions.updateRepoList);
@@ -44,17 +51,22 @@ actions.updateRepoList.listenAndPromise(function () {
 actions.updateRepoList.completed.listen(actions.updateAllPRLists);
 
 actions.updateAllPRLists.listenAndPromise(function (repos) {
-    return Promise.all(repos.map(function (repo) {
+    return repos.map(function (repo) {
         return actions.updatePRList(repo.get('owner').get('login'), repo.get('name'));
-    }).toJS());
+    }).toJS();
 });
 
+/*
 actions.updateAllPRLists.completed.listen(function () {
     console.log("finished loading PRs for all repositories");
 });
+*/
 
 actions.updatePRList.listenAndPromise(function (owner, repo) {
     return xrp(xr.get('https://api.github.com/repos/' + owner + '/' + repo + '/pulls'));
 });
+
+actions.selectOwner.listen(actions.filterByOwner);
+actions.selectOwner.listen(function (owner) { console.log("Owner " + owner + " selected");});
 
 module.exports = actions;
